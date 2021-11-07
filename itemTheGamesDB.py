@@ -1,3 +1,4 @@
+import logging
 import re
 import json
 
@@ -25,7 +26,7 @@ import json
 # Genre(s): Action | Racing | Platform | Board | Family
 
 class TheGamesDBConfig:
-    totalNumItems = 1  # 94630
+    totalNumItems = 94780
     urlBase = "https://thegamesdb.net/game.php?id="
     itemDataFilePattern = "thegamesdb_{}.html"
     destFilePath = "thegamesdb"
@@ -65,14 +66,21 @@ class TheGamesDBMethods:
             item.screenshot, item.banner, item.clearlogo)
 
     def toJson(item):
-        strItemData = json.dumps(item.itemData, default=lambda o: o.__dict__, indent=4).replace(
-            "[\n    {", "").replace("\n    }\n]", "").replace("\n    {", "").replace("\n    },", ",")
-#        print(json.dumps(item, default=lambda o: o.__dict__, indent=4) + "\n\n\n")
-        strResult = re.sub("\"itemData\": \[[a-zA-z0-9\",:\-+\n {}]*}\n    \]", strItemData,
-                           json.dumps(item, default=lambda o: o.__dict__, indent=4))
-#        print(strResult + "\n\n\n")
-        jsonResult = json.loads(strResult)
-#        print("\n---------\n" + json.dumps(jsonResult, sort_keys=True, indent=4) + "\n---------\n")
+        logging.debug("\n---------------------------------------------------------------------------------------------------------------------------------------\n")
+        strJson = json.dumps(item, default=lambda o: o.__dict__, indent=4)
+#        text = text.encode('unicode_escape').decode('utf-8')
+#        text = re.sub(r'\\u(.){4}', '', text)
+        logging.debug(strJson + "\n\n\n")
+        strItemDataArray = json.dumps(item.itemData, default=lambda o: o.__dict__, indent=4)
+        strItemDataList = strItemDataArray.replace("[\n    {", "").replace("\n    }\n]", "").replace("\n    {", "").replace("\n    },", ",")
+        strItemDataList = strItemDataList.encode('unicode_escape').decode('utf-8')
+        logging.debug(strItemDataList+"\n******************************\n")
+        strJson = re.sub("\"itemData\":[\w\W]*}\n    \]",strItemDataList,strJson)
+#        https://regex101.com/
+        logging.debug(strJson + "\n\n\n")
+        jsonResult = json.loads(strJson)
+        logging.debug("\n---------\n" + json.dumps(jsonResult, sort_keys=True, indent=4) + "\n---------\n")
+        logging.debug("\n---------------------------------------------------------------------------------------------------------------------------------------\n")
         return jsonResult
 
     def findItemTitle(soup):

@@ -1,3 +1,6 @@
+import logging
+import logging.config
+import yaml
 import random
 import requests
 import time
@@ -13,7 +16,7 @@ class RequestFiles:
     headers = {
         'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.81 Safari/537.36'}
     procesedItemsFile = "procesedItems.txt"
-    maxTimeBtwRequest = 5
+    maxTimeBtwRequest = 2
     items = []
     procesedItems = []
     notProcessedItems = []
@@ -36,7 +39,7 @@ class RequestFiles:
                         pass
                 # procesedItems = list(lines.split(" "))
         except FileNotFoundError:
-            print("Creating new '{}' file".format(self.procesedItemsFile))
+            logger.error("Creating new '{}' file".format(self.procesedItemsFile))
         return procesedItems
 
     def write_item_processed(self, i):
@@ -45,7 +48,7 @@ class RequestFiles:
 
     def common_requests(self, urlBase, i):
         url = urlBase + str(i)
-        print("Getting URL:{}".format(url))
+        logger.info("Getting URL:{}".format(url))
         r = requests.get(url, headers=self.headers, verify=False)
         return r
 
@@ -66,12 +69,12 @@ class RequestFiles:
         condition = len(self.notProcessedItems) > 0
         while condition:
             itemNumber = random.choice(self.notProcessedItems)
-            print("Item {}".format(str(itemNumber)))
+            logger.info("Item {}".format(str(itemNumber)))
             response = self.common_requests(self.urlBase, itemNumber)
             self.process_response(response, itemNumber, item)
             self.write_item_processed(itemNumber)
             self.notProcessedItems.remove(itemNumber)
-            self.procesedItems.append(itemNumber)
+#            self.procesedItems.append(itemNumber)
             time.sleep(random.randint(0, self.maxTimeBtwRequest))
             condition = len(self.notProcessedItems) > 0
 
@@ -85,30 +88,45 @@ class RequestFiles:
         return TheGamesDBMethods.parseHtml(index, soup)
 
 
+def init_logger():
+    with open('config.yml', 'r') as f:
+        config = yaml.safe_load(f.read())
+        logging.config.dictConfig(config)
+    return logging.getLogger() #"web_scraper")
+
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+logger = init_logger()
+mongoClient = MongoClient(host="localhost", port=27017)
+
 def main():
-    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
     requestFiles = RequestFiles()
     requestFiles.totalNumItems, requestFiles.urlBase, requestFiles.itemDataFilePattern, requestFiles.destFilePath = TheGamesDBConfig().config()
-    #    requestFiles.downloadItems(TheGamesDBItem())
+#    requestFiles.downloadItems(TheGamesDBItem())
 
-    mongoClient = MongoClient(host="localhost", port=27017)
     mongoDb = mongoClient.thegamesdb
     mongoCol = mongoDb.items
 
     fails = []
-    for itemIndex in range(1, requestFiles.totalNumItems + 1):
+    for itemIndex in range(94770, requestFiles.totalNumItems + 1):
         try:
             item = requestFiles.parseHtml(itemIndex)
             requestFiles.items.append(item)
             jsonResult = TheGamesDBMethods.toJson(item)
-            print("\n---------\n" + json.dumps(jsonResult, sort_keys=True, indent=4) + "\n---------\n")
-#            mongoCol.insert_one(item.toJson())
-        except BaseException as err:
-            print(f"{itemIndex}\tUnexpected {err=}, {type(err)=}")
+            logger.info("\n---------\n{}\n---------\n".format(json.dumps(jsonResult, sort_keys=True, indent=4)))
+            mongoCol.insert_one(jsonResult)
+        except FileNotFoundError as err:
+            logger.warning(f"{itemIndex}\tNot found {err=}, {type(err)=}")
             fails.append(itemIndex)
-            raise
+        # except BaseException as err:
+        #     logger.error(f"{itemIndex}\tUnexpected {err=}, {type(err)=}")
+        #     fails.append(itemIndex)
+        #     # raise
+        except Exception as err:
+            logger.error("Exception occurred", exc_info=True)
+            fails.append(itemIndex)
 
-    print("fails({}):{}".format(len(fails), fails))
+    logger.warning("fails({}):{}".format(len(fails), fails))
 
 
 if __name__ == "__main__":

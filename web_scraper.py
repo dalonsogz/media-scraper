@@ -7,10 +7,8 @@ import time
 import urllib3
 import re
 import json
-from itemTheGamesDB import TheGamesDBConfig, TheGamesDBItem, TheGamesDBMethods
+from itemTheGamesDB import TheGamesDBConfig as siteCfg, TheGamesDBItem as siteItem, TheGamesDBMethods as siteMethods, TheGamesDBMongo as siteDB
 from bs4 import BeautifulSoup
-from pymongo import MongoClient
-
 
 class RequestFiles:
     headers = {
@@ -22,9 +20,10 @@ class RequestFiles:
     notProcessedItems = []
 
     totalNumItems = 0
-    urlBase = ""
-    itemDataFilePattern = ""
-    destFilePath = ""
+    urlBase = None
+    itemDataFilePattern = None
+    destFilePath = None
+    mongoCol = None
 
     ########################## D O W N L O A D    I T E M S    S E C T I O N
 
@@ -74,7 +73,7 @@ class RequestFiles:
             self.process_response(response, itemNumber, item)
             self.write_item_processed(itemNumber)
             self.notProcessedItems.remove(itemNumber)
-#            self.procesedItems.append(itemNumber)
+            #            self.procesedItems.append(itemNumber)
             time.sleep(random.randint(0, self.maxTimeBtwRequest))
             condition = len(self.notProcessedItems) > 0
 
@@ -85,34 +84,30 @@ class RequestFiles:
         with open(self.destFilePath + "/" + dataFile, 'r', encoding='utf8') as fp:
             soup = BeautifulSoup(fp, "html.parser")
 
-        return TheGamesDBMethods.parseHtml(index, soup)
+        return siteMethods.parseHtml(index, soup)
 
 
 def init_logger():
     with open('config.yml', 'r') as f:
         config = yaml.safe_load(f.read())
         logging.config.dictConfig(config)
-    return logging.getLogger() #"web_scraper")
+    return logging.getLogger()  # "web_scraper")
 
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-logger = init_logger()
-mongoClient = MongoClient(host="localhost", port=27017)
 
-def main():
-
+def downloadItems():
     requestFiles = RequestFiles()
-    requestFiles.totalNumItems, requestFiles.urlBase, requestFiles.itemDataFilePattern, requestFiles.destFilePath = TheGamesDBConfig().config()
-#    requestFiles.downloadItems(TheGamesDBItem())
+    requestFiles.totalNumItems, requestFiles.urlBase, requestFiles.itemDataFilePattern, requestFiles.destFilePath, requestFiles.mongoCol = siteCfg().config()
+    requestFiles.downloadItems(siteItem())
+    return requestFiles
 
-    mongoDb = mongoClient.thegamesdb
-    mongoCol = mongoDb.items
 
+def parseItemFilesAndAddToDabase(requestFiles, parseFrom):
     fails = []
-    for itemIndex in range(94770, requestFiles.totalNumItems + 1):
+    for itemIndex in range(parseFrom, requestFiles.totalNumItems + 1):
         try:
             item = requestFiles.parseHtml(itemIndex)
             requestFiles.items.append(item)
-            jsonResult = TheGamesDBMethods.toJson(item)
+            jsonResult = siteMethods.toJson(item)
             logger.info("\n---------\n{}\n---------\n".format(json.dumps(jsonResult, sort_keys=True, indent=4)))
             mongoCol.insert_one(jsonResult)
         except FileNotFoundError as err:
@@ -128,6 +123,27 @@ def main():
 
     logger.warning("fails({}):{}".format(len(fails), fails))
 
+
+global logger
+flagAddToDatabase = False
+parseFrom = 95851
+import keyboard
+
+def main():
+    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+    global logger
+    logger = init_logger()
+
+    requestFiles = downloadItems()
+
+    if (requestFiles.totalNumItems-(parseFrom-1))>0 and flagAddToDatabase:
+        parseItemFilesAndAddToDabase(requestFiles, parseFrom)
+
+    items = siteDB.findTitleSimilar("Inside",10)
+    for item in items:
+        print(item)
+
+#    keyboard.wait()
 
 if __name__ == "__main__":
     main()

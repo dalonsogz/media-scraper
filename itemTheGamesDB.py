@@ -1,7 +1,8 @@
 import logging
 import re
 import json
-
+from pymongo import MongoClient
+from bson import SON as bson
 
 ####<div class="card-body">
 ####<p>
@@ -26,16 +27,20 @@ import json
 # Genre(s): Action | Racing | Platform | Board | Family
 
 class TheGamesDBConfig:
-    totalNumItems = 94780
+    totalNumItems = 95850  # 2021-12-10
     urlBase = "https://thegamesdb.net/game.php?id="
     itemDataFilePattern = "thegamesdb_{}.html"
     destFilePath = "thegamesdb"
+
+    mongoClient = MongoClient(host="localhost", port=27017)
+    mongoDb = mongoClient.thegamesdb
+    mongoCol = mongoDb.items
 
     itemsMedia = ["Front Cover", "Back Cover", "Fanart", "Screenshot", "Banner", "Clearlogo"]
     itemYoutubeTrailer = "Trailer: YouTube"
 
     def config(self):
-        return self.totalNumItems, self.urlBase, self.itemDataFilePattern, self.destFilePath
+        return self.totalNumItems, self.urlBase, self.itemDataFilePattern, self.destFilePath, self.mongoCol
 
 
 class TheGamesDBItem:
@@ -148,3 +153,16 @@ class TheGamesDBMethods:
             soup, config.itemsMedia)
         item.itemData = TheGamesDBMethods.findiItemDataTypes(soup)
         return item
+
+
+class TheGamesDBMongo:
+
+    @classmethod
+    def findTitleSimilar(self,title,maxResults):
+        metaTextScore = bson({'$meta': 'textScore'})
+        filter = bson({'$text': {'$search': title}}) #, 'platform': 'PC' })
+        fields = bson({'_id': 0, 'id': 1, 'title': 1, 'platform': 1, 'score': metaTextScore})
+        # query: {"$text": {"$search": title}},{'_id':0,'id':1,'title':1,'score':{'$meta':'textScore'}}).limit(15)
+        cursor = TheGamesDBConfig.mongoCol.find(filter, fields).limit(maxResults)
+        cursor.sort([('score', metaTextScore)])
+        return cursor

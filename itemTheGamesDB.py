@@ -27,7 +27,7 @@ from bson import SON as bson
 # Genre(s): Action | Racing | Platform | Board | Family
 
 class TheGamesDBConfig:
-    totalNumItems = 95850  # 2021-12-10
+    totalNumItems = 98616  # 2022-03-14
     urlBase = "https://thegamesdb.net/game.php?id="
     itemDataFilePattern = "thegamesdb_{}.html"
     destFilePath = "thegamesdb"

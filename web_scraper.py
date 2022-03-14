@@ -19,12 +19,6 @@ class RequestFiles:
     procesedItems = []
     notProcessedItems = []
 
-    totalNumItems = 0
-    urlBase = None
-    itemDataFilePattern = None
-    destFilePath = None
-    mongoCol = None
-
     ########################## D O W N L O A D    I T E M S    S E C T I O N
 
     def read_items_processed(self):
@@ -109,7 +103,7 @@ def parseItemFilesAndAddToDabase(requestFiles, parseFrom):
             requestFiles.items.append(item)
             jsonResult = siteMethods.toJson(item)
             logger.info("\n---------\n{}\n---------\n".format(json.dumps(jsonResult, sort_keys=True, indent=4)))
-            mongoCol.insert_one(jsonResult)
+            requestFiles.mongoCol.insert_one(jsonResult)
         except FileNotFoundError as err:
             logger.warning(f"{itemIndex}\tNot found {err=}, {type(err)=}")
             fails.append(itemIndex)
@@ -125,7 +119,7 @@ def parseItemFilesAndAddToDabase(requestFiles, parseFrom):
 
 
 global logger
-flagAddToDatabase = False
+flagAddToDatabase = True
 parseFrom = 95851
 import keyboard
 

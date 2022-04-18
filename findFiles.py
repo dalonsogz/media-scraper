@@ -2,11 +2,14 @@
 
 import sys, shutil, readchar, traceback
 import hashlib, os
+import tkinter
+
 import textdistance
 from pathlib import PurePath, Path
 from itertools import filterfalse
 from tkinter import *
 from tkinter import filedialog
+from tkinter import ttk
 
 
 def printExceptionDetails(inst, message, object):
@@ -89,69 +92,102 @@ def chooseTargetDir():
     lstBoxTargetItems.delete(0, END)
     lstBoxTargetItems.insert(0, *os.listdir(targetDir))
 
+def sourceItemSelected(event):
+    selection = event.widget.curselection()
+#    self.listbox.curselection()
+    if selection:
+        index = selection[0]
+        data = event.widget.get(index)
+        print(data)
+        table.delete(*table.get_children())
+        table.insert(parent='', index='end', id=len(table.get_children()), text='', values=(data, '1.000000'))
+
 
 root = Tk()
 root.title("DiffFiles")
 root.resizable(True,True)
+root.geometry('1700x1000')
 
 root.srcDir = StringVar()
 root.targetDir = StringVar()
+root.columnconfigure(0, weight=1)
+root.columnconfigure(1, weight=1)
+root.columnconfigure(2, weight=1)
+root.rowconfigure(0, weight=1)
 
-#mainFrame = Frame(root, padx=5, pady=5, width=1000, height=500)
-
+# Source
 sourceGroup = LabelFrame(root, text="Source", padx=5, pady=5)
-sourceGroup.grid(row=0, column=0, columnspan=1, padx=5, pady=5, sticky=E+W+N+S)
-targetGroup = LabelFrame(root, text="Target",padx=5, pady=5)
-targetGroup.grid(row=0, column=1, columnspan=1, padx=5, pady=5, sticky=E+W+N+S)
+sourceGroup.grid(row=0, column=0, columnspan=1, padx=5, pady=5, sticky="ewns")
+sourceGroup.columnconfigure(0, weight=1)
+sourceGroup.rowconfigure(1, weight=1)
 
 lblSrcDir = Label(sourceGroup, textvariable=root.srcDir, anchor="w")
 lblSrcDir.grid(row=0, column=0, padx=5, pady=5, columnspan=1, sticky="w")
 btnChooseSrcDir = Button(sourceGroup, text="Source", command=chooseSrcDir)
 btnChooseSrcDir.grid(row=0, column=1, padx=5, pady=5, columnspan=1, sticky="e")
 
+lstBoxSrcItems = Listbox(sourceGroup, exportselection=0, width=60, height=40)
+scrlBarBoxSrcItems = Scrollbar(sourceGroup, command=lstBoxSrcItems.yview)
+scrlBarBoxSrcItems.grid(row=1, column=2, sticky="ns")
+scrlBarBoxSrcItemsH = Scrollbar(sourceGroup, command=lstBoxSrcItems.xview, orient=tkinter.HORIZONTAL)
+scrlBarBoxSrcItemsH.grid(row=2, column=0, columnspan=2, sticky="we")
+lstBoxSrcItems.grid(row=1, column=0, columnspan=2, sticky="nsew")
+lstBoxSrcItems.config(yscrollcommand=scrlBarBoxSrcItems.set,xscrollcommand=scrlBarBoxSrcItemsH.set)
+lstBoxSrcItems.bind("<<ListboxSelect>>", sourceItemSelected)
+
+# Target
+targetGroup = LabelFrame(root, text="Target",padx=5, pady=5)
+targetGroup.grid(row=0, column=1, columnspan=1, padx=5, pady=5, sticky="ewns")
+targetGroup.columnconfigure(0, weight=1)
+targetGroup.rowconfigure(1, weight=1)
+
 lblTargetDir = Label(targetGroup, textvariable=root.targetDir, anchor="w")
 lblTargetDir.grid(row=0, column=0, padx=5, pady=5, columnspan=1, sticky="w")
 btnChooseTargetDir = Button(targetGroup, text="Target", command=chooseTargetDir)
 btnChooseTargetDir.grid(row=0, column=1, padx=5, pady=5, columnspan=1, sticky="e")
 
-lstBoxSrcItems = Listbox(sourceGroup, width=50, height=25)
-scrlBarBoxSrcItems = Scrollbar(sourceGroup, command=lstBoxSrcItems.yview)
-scrlBarBoxSrcItems.grid(row=1, column=2, sticky="ns")
-lstBoxSrcItems.grid(row=1, column=0, columnspan=2, sticky="nsew")
-lstBoxSrcItems.config(yscrollcommand=scrlBarBoxSrcItems.set)
-
-lstBoxTargetItems = Listbox(targetGroup, width=50, height=25)
+lstBoxTargetItems = Listbox(targetGroup, exportselection=0, width=60, height=40)
 scrlBarBoxTargetItems = Scrollbar(targetGroup, command=lstBoxTargetItems.yview)
 scrlBarBoxTargetItems.grid(row=1, column=2, sticky="ns")
+scrlBarBoxTargetItemsH = Scrollbar(targetGroup, command=lstBoxTargetItems.xview, orient=tkinter.HORIZONTAL)
+scrlBarBoxTargetItemsH.grid(row=2, column=0, columnspan=2, sticky="we")
 lstBoxTargetItems.grid(row=1, column=0, columnspan=2, sticky="nsew")
-lstBoxTargetItems.config(yscrollcommand=scrlBarBoxTargetItems.set)
+lstBoxTargetItems.config(yscrollcommand=scrlBarBoxTargetItems.set,xscrollcommand=scrlBarBoxTargetItemsH.set)
+
+# Data
+tableGroup = LabelFrame(root, text="Data",padx=5, pady=5)
+tableGroup.grid(row=0, column=2, columnspan=1, padx=5, pady=5, sticky="ewn")
+tableGroup.columnconfigure(0, weight=1)
+tableGroup.rowconfigure(1, weight=1)
+
+# Table
+table = ttk.Treeview(tableGroup)
+table['columns']= ('name', 'distance')
+table.column("#0", width=0,  stretch=NO)
+table.column("name",anchor="w", width=300)
+table.column("distance",anchor="w", width=50)
+table.heading("#0",text="",anchor=CENTER)
+table.heading("name",text="Name",anchor=CENTER)
+table.heading("distance",text="Distance",anchor=CENTER)
+#table.columnconfigure(0, weight=1)
+table.columnconfigure(0, weight=1)
+table.columnconfigure(1, weight=1)
+table.rowconfigure(0,weight=1)
+table.grid(row=0, column=0, sticky="nwe")
+scrlBarTable = Scrollbar(tableGroup, command=table.yview)
+scrlBarTable.grid(row=0, column=1, sticky="ns")
+#scrlBarTableH = Scrollbar(tableGroup, command=table.xview, orient=tkinter.HORIZONTAL)
+#scrlBarTableH.grid(row=1, column=0, columnspan=2, sticky="we")
+table.config(yscrollcommand=scrlBarTable.set) #,xscrollcommand=scrlBarTableH.set)
 
 
-root.columnconfigure(0, weight=1)
-root.columnconfigure(1, weight=1)
-root.rowconfigure(0, weight=1)
-
-#mainFrame.columnconfigure(0, weight=1)
-#mainFrame.rowconfigure(0, weight=1)
-
-sourceGroup.columnconfigure(0, weight=1)
-sourceGroup.columnconfigure(1, weight=0)
-sourceGroup.columnconfigure(2, weight=0)
-sourceGroup.rowconfigure(0, weight=0)
-sourceGroup.rowconfigure(1, weight=1)
-
-targetGroup.columnconfigure(0, weight=1)
-targetGroup.columnconfigure(1, weight=0)
-targetGroup.columnconfigure(2, weight=0)
-targetGroup.rowconfigure(0, weight=0)
-targetGroup.rowconfigure(1, weight=1)
-
-
-
+# Init data
 root.srcDir.set(defaultSrcDir)
 root.targetDir.set(defaultTargetDir)
 
-#mainFrame.pack()
+# Init components data
+lstBoxSrcItems.insert(0, *os.listdir(defaultSrcDir))
+lstBoxTargetItems.insert(0, *os.listdir(defaultTargetDir))
 
 root.mainloop()
 

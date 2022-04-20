@@ -5,6 +5,7 @@ import hashlib, os
 import tkinter
 
 import textdistance
+import more_itertools
 from pathlib import PurePath, Path
 from itertools import filterfalse
 from tkinter import *
@@ -99,9 +100,21 @@ def sourceItemSelected(event):
         index = selection[0]
         data = event.widget.get(index)
         print(data)
+#        table.delete(*table.get_children())
+#        table.insert(parent='', index='end', id=len(table.get_children()), text='', values=(data, '1.000000'))
+        items = os.listdir(targetDir)
+        itemsEvaluated = {}
+        for item in items:
+            itemsEvaluated[item]=textdistance.strcmp95(data.lower(), item.lower())
+#        for item in itemsEvaluated:
+#            print("Item:{} - Distance:{}".format(item,itemsEvaluated.get(item)))
+        itemsEvaluated = dict(sorted(itemsEvaluated.items(), key=lambda item: item[1], reverse=True))
+        best_itemsEvaluated = dict(more_itertools.take(5,itemsEvaluated.items()))
         table.delete(*table.get_children())
-        table.insert(parent='', index='end', id=len(table.get_children()), text='', values=(data, '1.000000'))
-
+        for item in best_itemsEvaluated:
+            table.insert(parent='', index='end', id=len(table.get_children()), text='', values=(item,best_itemsEvaluated.get(item)))
+            print("Item:{} - Distance:{}".format(item,best_itemsEvaluated.get(item)))
+        print("---------------------------------------------------------------")
 
 root = Tk()
 root.title("DiffFiles")
@@ -189,8 +202,11 @@ root.targetDir.set(defaultTargetDir)
 lstBoxSrcItems.insert(0, *os.listdir(defaultSrcDir))
 lstBoxTargetItems.insert(0, *os.listdir(defaultTargetDir))
 
-root.mainloop()
+sourceDir=defaultSrcDir
+targetDir=defaultTargetDir
 
-# if __name__ == "__main__":
+
+if __name__ == "__main__":
 #    main(sys.argv)
+    root.mainloop()
 

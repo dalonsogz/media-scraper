@@ -1,5 +1,11 @@
 # Requests Quick Start
-# https://docs.python-requests.org/en/latest/user/quickstart/
+# https://docs.python-requests.org/en/latest/user/quickstart/ (removed)
+
+# https://kennethreitz.org
+# https://httpbin.org
+# https://github.com/psf/requests
+# https://docs.github.com/es/rest/activity/events
+
 
 import requests
 
@@ -97,16 +103,16 @@ class RequestTest:
         fo.close()
 
     def main(self):
-#        self.common_requests()
+        self.common_requests()
 
-#        httpResponse = self.get_request(True)
-#        self.read_response_raw(httpResponse)
+        httpResponse = self.get_request(True)
+        self.read_response_raw(httpResponse)
 
-#        httpResponse = self.get_request(False)
-#        self.read_response(httpResponse)
-#        self.read_response_full(httpResponse)
+        httpResponse = self.get_request(False)
+        self.read_response(httpResponse)
+        self.read_response_full(httpResponse)
 
-        self.get_file("https://www.pleasuredome.org.uk/images/","rotate.php")
+#        self.get_file("https://www.pleasuredome.org.uk/images/","rotate.php")
 
 
 def main():

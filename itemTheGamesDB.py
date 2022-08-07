@@ -27,7 +27,7 @@ from bson import SON as bson
 # Genre(s): Action | Racing | Platform | Board | Family
 
 class TheGamesDBConfig:
-    totalNumItems = 98616  # 2022-03-14
+    totalNumItems = 103248  # 2022-08-07
     urlBase = "https://thegamesdb.net/game.php?id="
     itemDataFilePattern = "thegamesdb_{}.html"
     destFilePath = "thegamesdb"
@@ -166,3 +166,4 @@ class TheGamesDBMongo:
         cursor = TheGamesDBConfig.mongoCol.find(filter, fields).limit(maxResults)
         cursor.sort([('score', metaTextScore)])
         return cursor
+

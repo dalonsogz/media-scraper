@@ -120,7 +120,7 @@ def parseItemFilesAndAddToDabase(requestFiles, parseFrom):
 
 global logger
 flagAddToDatabase = True
-parseFrom = 103248  # 99821
+parseFrom = 104370  # 99821
 import keyboard
 
 def main():
@@ -133,9 +133,9 @@ def main():
     if (requestFiles.totalNumItems-(parseFrom-1))>0 and flagAddToDatabase:
         parseItemFilesAndAddToDabase(requestFiles, parseFrom)
 
-    items = siteDB.findTitleSimilar("Inside",10)
-    for item in items:
-        print(item)
+#    items = siteDB.findTitleSimilar("Inside",10)
+#    for item in items:
+#        print(item)
 
 #    keyboard.wait()
 

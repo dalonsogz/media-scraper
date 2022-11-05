@@ -46,3 +46,18 @@ db.getCollection('items').remove({
 ~~~
 mongo thegamesdb duplicated_ids.txt
 ~~~
+
+## Get sorted/limited lists in mongoDB:
+
+Get last 10 records:
+~~~
+db.getCollection('items').find().skip(db.getCollection('items').count()-10)
+~~~
+Get last 10 records (reverse order):
+~~~
+db.getCollection('items').find().sort({$natural:-1}).limit(10)
+~~~
+Get a record by th 'id':
+~~~
+db.getCollection('items').find({"id":104370}).sort({"id":1})
+~~~

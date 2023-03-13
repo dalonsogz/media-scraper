@@ -1,6 +1,5 @@
 # media-scraper
 
-<<<<<<< HEAD
 Web scrapping scripts testing capabilities with Python [BeautifulSoup](https://www.crummy.com/software/BeautifulSoup/) library.
 
 Main script, web_scraper.py, fetch and update data from the site 'thegamesdb' site.

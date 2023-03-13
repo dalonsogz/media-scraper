@@ -1,8 +1,12 @@
 # media-scraper
 
-## --
+Web scrapping scripts testing web scraping capabilities with Python. 
 
-### DELETE DUPLICATED ITEMS
+Main script fetch and update from the site 'thegamesdb'. 
+
+Results are stored in a mongodb database.
+
+## DELETE DUPLICATED ITEMS
 
 Delete (one) duplicated records searching by a field.
 - launch the query to find duplicates by the field 'id':
@@ -61,3 +65,18 @@ Get a record by th 'id':
 ~~~
 db.getCollection('items').find({"id":104370}).sort({"id":1})
 ~~~
+
+## Other scripts included
+
+- mongoTest.py.  
+Testing mongo search capabilities.
+
+ 
+- requestTest.py.  
+Testing different REST methods endpoints requests.
+
+- requestFiles.py
+Testing web batch fetching similar named resources.
+
+- nes_midi_scraper.py.  
+Code from [Twilio Blog article]() showing how to perform simple web scrapping using BeautifulSoup.

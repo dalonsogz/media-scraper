@@ -1,5 +1,6 @@
 # media-scraper
 
+<<<<<<< HEAD
 Web scrapping scripts testing capabilities with Python [BeautifulSoup](https://www.crummy.com/software/BeautifulSoup/) library.
 
 Main script, web_scraper.py, fetch and update data from the site 'thegamesdb' site.
@@ -74,7 +75,6 @@ db.getCollection('items').find({"id":104370}).sort({"id":1})
 
 - mongoTest.py.  
 Testing mongo search capabilities.
-
  
 - requestTest.py.  
 Testing different REST methods endpoints requests.

@@ -120,7 +120,7 @@ def parseItemFilesAndAddToDabase(requestFiles, parseFrom):
 
 global logger
 flagAddToDatabase = True
-parseFrom = 11249  #110199  #109063  #107517  #106679  #105980  #105610  #105186  #104370  #103248
+parseFrom = 112645  #111249  #110199  #109063  #107517  #106679  #105980  #105610  #105186  #104370  #103248
 import keyboard
 
 def main():

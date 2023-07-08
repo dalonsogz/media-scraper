@@ -31,7 +31,6 @@ db.getCollection('items').aggregate(
 ~~~
 - copy results to `duplicated.txt`.
 
-
 - copy the cleaned results to `duplicated_ids.txt`:
 ~~~
 grep -Eo 'ObjectId\(\".*\"\),' duplicated.txt > duplicated_ids.txt
@@ -69,18 +68,3 @@ Get a record by th 'id':
 ~~~
 db.getCollection('items').find({"id":104370}).sort({"id":1})
 ~~~
-
-## Other scripts included
-
-- mongoTest.py.  
-Testing mongo search capabilities.
- 
-- requestTest.py.  
-Testing different REST methods endpoints requests.
-
-- requestFiles.py
-Testing web batch fetching similar named resources.
-
-- nes_midi_scraper.py.  
-Code from [Twilio Blog article]() showing how to perform simple web scrapping using BeautifulSoup.
-``

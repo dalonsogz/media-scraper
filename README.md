@@ -15,7 +15,7 @@ Results are stored in a mongodb database.
 Delete (one) duplicated records searching by a field.
 - launch the query to find duplicates by the field 'id':
 ~~~
-DBQuery.shellBatchSize = 5000;
+DBQuery.shellBatchSize = 500000;
 db.getCollection('items').aggregate(
     [
     { $match: { "id":{$gt:1}}}

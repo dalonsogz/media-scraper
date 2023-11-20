@@ -27,10 +27,13 @@ from bson import SON as bson
 # Genre(s): Action | Racing | Platform | Board | Family
 
 class TheGamesDBConfig:
-    totalNumItems = 119378 #2023-0923    118332 #2023-09-02    #117573 #2023-08-11    #117058 #2023-07-22    #116472 #2023-07-08
-                        #115816 # 2023-06-16   #115266 #2023-06-02    #114677 #2023-05-21   #113639 #2023-04-25
-                        #112644 #2023-04-02    #111248 #2023-03-13    #110198 #2023-02-19    #109062 #2023-02-04
-                        #107516 #2022-12-24    #106678 #2022-11-26    #105979 #2022-11-04    #105609 #2022-10-22
+    totalNumItems = 120879 #2023-11-18
+                        #120317 #2023-10-28    119378 #2023-09-23    118332 #2023-09-02    #117573 #2023-08-11
+                        #117058 #2023-07-22    #116472 #2023-07-08    #115816 #2023-06-16    #115266 #2023-06-02
+                        #114677 #2023-05-21    #113639 #2023-04-25    #112644 #2023-04-02    #111248 #2023-03-13
+                        #110198 #2023-02-19    #109062 #2023-02-04    #107516 #2022-12-24    #106678 #2022-11-26
+                        #105979 #2022-11-04    #105609 #2022-10-22
+
     urlBase = "https://thegamesdb.net/game.php?id="
     itemDataFilePattern = "thegamesdb_{}.html"
     destFilePath = "thegamesdb"
@@ -116,7 +119,7 @@ class TheGamesDBMethods:
         return imgsLists
 
     def findItemDataType(soup):
-        return soup.findAll("div", class_="card-body")
+        return[element for element in soup.find_all("div", class_="card-body") if not element.find("p", class_="game-overview")]
 
     def getITemDataList(tags):
         items = []
@@ -141,7 +144,7 @@ class TheGamesDBMethods:
                 itemsClean.append(dictItem)
         return itemsClean
 
-    def findiItemDataTypes(soup):
+    def findItemDataTypes(soup):
         itemDataLists = TheGamesDBMethods.getITemDataList(TheGamesDBMethods.findItemDataType(soup))
         return itemDataLists
 
@@ -154,7 +157,7 @@ class TheGamesDBMethods:
         item.trailer_link = TheGamesDBMethods.findTrailerLink(soup)
         item.front_cover, item.back_cover, item.fanart, item.screenshot, item.banner, item.clearlogo = TheGamesDBMethods.findImgTypes(
             soup, config.itemsMedia)
-        item.itemData = TheGamesDBMethods.findiItemDataTypes(soup)
+        item.itemData = TheGamesDBMethods.findItemDataTypes(soup)
         return item
 
 

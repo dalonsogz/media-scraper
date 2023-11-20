@@ -1,6 +1,6 @@
 thegamesdb/
 thegamesdb_404/
-procesedItems.txt
+procesedItems_thegamesDB.txt
 sync.sh
 *.url
 *.7z

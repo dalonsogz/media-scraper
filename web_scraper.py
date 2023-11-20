@@ -7,7 +7,8 @@ import time
 import urllib3
 import re
 import json
-from itemTheGamesDB import TheGamesDBConfig as siteCfg, TheGamesDBItem as siteItem, TheGamesDBMethods as siteMethods, TheGamesDBMongo as siteDB
+#from itemTheGamesDB import TheGamesDBConfig as siteCfg, TheGamesDBItem as siteItem, TheGamesDBMethods as siteMethods, TheGamesDBMongo as siteDB
+from itemSteamStore import SteamStoreConfig as siteCfg, SteamStoreItem as siteItem, SteamStoreMethods as siteMethods, SteamStoreMongo as siteDB
 from bs4 import BeautifulSoup
 
 class RequestFiles:
@@ -54,8 +55,8 @@ class RequestFiles:
         self.items.insert(item.id, item)
         self.write_response_to_file(response, itemNumber)
 
-    def downloadItems(self, item):
-        totalItems = list(range(1, self.totalNumItems + 1))
+    def downloadItems(self, item, downloadfrom):
+        totalItems = list(range(downloadfrom, self.totalNumItems + 1))
         self.procesedItems = self.read_items_processed()
         self.notProcessedItems = list(set(totalItems) - set(self.procesedItems))
 
@@ -88,10 +89,10 @@ def init_logger():
     return logging.getLogger()  # "web_scraper")
 
 
-def downloadItems():
+def downloadItems(downloadfrom):
     requestFiles = RequestFiles()
     requestFiles.totalNumItems, requestFiles.urlBase, requestFiles.itemDataFilePattern, requestFiles.destFilePath, requestFiles.mongoCol = siteCfg().config()
-    requestFiles.downloadItems(siteItem())
+    requestFiles.downloadItems(siteItem(),downloadfrom)
     return requestFiles
 
 
@@ -120,7 +121,10 @@ def parseItemFilesAndAddToDabase(requestFiles, parseFrom):
 
 global logger
 flagAddToDatabase = True
-parseFrom = 119378  #118333  #117574  #117059  #116473  #115817  #115268  #113640  #112645  #111249  #110199  #109063  #107517  #106679  #105980  #105610  #105186  #104370  #103248
+parseFrom = 70
+# parseFrom = 120879  #120318  #119378  #118333  #117574  #117059  #116473  #115817  #115268  #113640  #112645
+#                     #111249  #110199  #109063  #107517  #106679  #105980  #105610  #105186  #104370  #103248
+
 import keyboard
 
 def main():
@@ -128,7 +132,7 @@ def main():
     global logger
     logger = init_logger()
 
-    requestFiles = downloadItems()
+    requestFiles = downloadItems(parseFrom)
 
     if (requestFiles.totalNumItems-(parseFrom-1))>0 and flagAddToDatabase:
         parseItemFilesAndAddToDabase(requestFiles, parseFrom)

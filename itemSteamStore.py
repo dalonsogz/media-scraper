@@ -5,7 +5,7 @@ from pymongo import MongoClient
 from bson import SON as bson
 
 class SteamStoreConfig:
-    totalNumItems = 70
+    totalNumItems = 1174180
 
     urlBase = "https://store.steampowered.com/app/"
     itemDataFilePattern = "steampowered_{}.html"
@@ -15,28 +15,29 @@ class SteamStoreConfig:
     mongoDb = mongoClient.steamstore
     mongoCol = mongoDb.items
 
-    itemsMedia = ["Front Cover", "Back Cover", "Fanart", "Screenshot", "Banner", "Clearlogo"]
-    itemYoutubeTrailer = "Trailer: YouTube"
-
     def config(self):
         return self.totalNumItems, self.urlBase, self.itemDataFilePattern, self.destFilePath, self.mongoCol
-
 
 class SteamStoreItem:
     id = 0
     title = ""
     description = ""
-    trailer_link = ""
+    review_type_all = 0
+    review_type_positive = 0
+    review_type_negative = 0
+    purchase_type_all = 0
+    purchase_type_steam = 0
+    purchase_type_non_steam = 0
 
-    itemData = []
 
-    front_cover = ""
-    back_cover = ""
-    fanart = []
-    screenshot = []
-    banner = ""
-    clearlogo = ""
-
+    reviews_dict = {
+        "review_type_all": "review_type_all",
+        "review_type_positive": "review_type_positive",
+        "review_type_negative": "review_type_negative",
+        "purchase_type_all": "purchase_type_all",
+        "purchase_type_steam": "purchase_type_steam",
+        "purchase_type_non_steam": "purchase_type_non_steam",
+    }
 
 class SteamStoreMethods:
 
@@ -44,82 +45,37 @@ class SteamStoreMethods:
         return s[:1].lower() + s[1:]
 
     def toString(item):
-        return "id:{}\ntitle:{}\ndescription:{}\ntrailerLink:{}\nitemData:{}\nfrontCover:{}\nbackCover:{}\nfanart:{}\nscreenshot:{}\nbanner:{}\nclearlogo:{}".format(
-            item.id, item.title, item.description, item.trailer_link, item.itemData, item.front_cover, item.back_cover,
-            item.fanart,
-            item.screenshot, item.banner, item.clearlogo)
+        return "id:{}\ntitle:{}\ndescription:{}".format(
+            item.id, item.title, item.description)
 
     def toJson(item):
         logging.debug("\n---------------------------------------------------------------------------------------------------------------------------------------\n")
         strJson = json.dumps(item, default=lambda o: o.__dict__, indent=4)
-#        text = text.encode('unicode_escape').decode('utf-8')
-#        text = re.sub(r'\\u(.){4}', '', text)
-        logging.debug(strJson + "\n\n\n")
-        strItemDataArray = json.dumps(item.itemData, default=lambda o: o.__dict__, indent=4)
-        strItemDataList = strItemDataArray.replace("[\n    {", "").replace("\n    }\n]", "").replace("\n    {", "").replace("\n    },", ",")
-        strItemDataList = strItemDataList.encode('unicode_escape').decode('utf-8')
-        logging.debug(strItemDataList+"\n******************************\n")
-        strJson = re.sub("\"itemData\":[\w\W]*}\n    \]",strItemDataList,strJson)
-#        https://regex101.com/
-        logging.debug(strJson + "\n\n\n")
         jsonResult = json.loads(strJson)
         logging.debug("\n---------\n" + json.dumps(jsonResult, sort_keys=True, indent=4) + "\n---------\n")
         logging.debug("\n---------------------------------------------------------------------------------------------------------------------------------------\n")
         return jsonResult
 
     def findItemTitle(soup):
-        return soup.find("h1").text.strip()
+        tag = soup.find("span", itemprop="name")
+        if tag:
+            return tag.text.strip()
 
     def findItemDescription(soup):
-        return soup.find("p", class_="game-overview").text.strip()
+        tag = soup.find("p", class_="game-overview")
+        if tag:
+            return tag.text.strip()
 
-    def findTrailerLink(soup):
-        trailerLink = soup.find("a", {"data-caption": "Trailer"})
-        if trailerLink:
-            trailerLink = trailerLink.attrs['href']
-        return trailerLink
+    def convertUserReviewsCount (tag):
+        return int(''.join(re.findall(r'\d+', str(tag.string))))
 
-    def findImgType(soup, imgtype):
-        return soup.findAll("a", {"data-caption": re.compile(imgtype)})
-
-    def getHrefList(tags):
-        return list("".join(tag.attrs['href']) for tag in (tags))
-
-    def findImgTypes(soup, imgTypeList):
-        imgsLists = []
-        for imgtype in imgTypeList:
-            imgsLists.append(SteamStoreMethods.getHrefList(SteamStoreMethods.findImgType(soup, imgtype)))
-        return imgsLists
-
-    def findItemDataType(soup):
-        return[element for element in soup.find_all("div", class_="card-body") if not element.find("p", class_="game-overview")]
-
-    def getITemDataList(tags):
-        items = []
-        itemsClean = []
-        for tag in tags:
-            items.extend(tag.text.strip().split("\n"))
-        items = list(filter(lambda x: (x != SteamStoreConfig.itemYoutubeTrailer), items))
-
-        for indexitem, item in enumerate(items):
-            if ":" not in item:
-                # items.remove(item)
-                continue
-            if "(s):" in item:
-                values = re.split(':|\|', item)
-                for indexval, value in enumerate(values):
-                    values[indexval] = value.strip()
-                dictItem = {values[0].replace("(s)", "").replace(" ","_").lower(): values[1:]}
-                itemsClean.append(dictItem)
-            else:
-                listItem = item.split(":")
-                dictItem = {listItem[0].strip().replace(" ","_").lower(): listItem[1].strip()}
-                itemsClean.append(dictItem)
-        return itemsClean
-
-    def findiItemDataTypes(soup):
-        itemDataLists = SteamStoreMethods.getITemDataList(SteamStoreMethods.findItemDataType(soup))
-        return itemDataLists
+    def setUserReviews(soup,item):
+        tagsSpanReviewsCount = soup.find_all("span", class_="user_reviews_count")
+        if tagsSpanReviewsCount:
+            for tag in tagsSpanReviewsCount:
+                tagParentFor = SteamStoreItem.reviews_dict.get(tag.parent["for"])
+                if tagParentFor:
+                    setattr(item, tagParentFor, SteamStoreMethods.convertUserReviewsCount(tag))
 
     def parseHtml(index, soup):
         item = SteamStoreItem()
@@ -127,12 +83,8 @@ class SteamStoreMethods:
         item.id = index
         item.title = SteamStoreMethods.findItemTitle(soup)
         item.description = SteamStoreMethods.findItemDescription(soup)
-        item.trailer_link = SteamStoreMethods.findTrailerLink(soup)
-        item.front_cover, item.back_cover, item.fanart, item.screenshot, item.banner, item.clearlogo = SteamStoreMethods.findImgTypes(
-            soup, config.itemsMedia)
-#        item.itemData = SteamStoreMethods.findItemDataTypes(soup)
+        SteamStoreMethods.setUserReviews(soup,item)
         return item
-
 
 class SteamStoreMongo:
 

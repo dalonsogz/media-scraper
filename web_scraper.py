@@ -121,7 +121,7 @@ def parseItemFilesAndAddToDabase(requestFiles, parseFrom):
 
 global logger
 flagAddToDatabase = True
-parseFrom = 70
+parseFrom = 1174180
 # parseFrom = 120879  #120318  #119378  #118333  #117574  #117059  #116473  #115817  #115268  #113640  #112645
 #                     #111249  #110199  #109063  #107517  #106679  #105980  #105610  #105186  #104370  #103248
 

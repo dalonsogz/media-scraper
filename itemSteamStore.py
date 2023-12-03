@@ -5,20 +5,23 @@ from pymongo import MongoClient
 from bson import SON as bson
 
 class SteamStoreConfig:
-    totalNumItems = 1174180
 
+    # Site parameters
+    totalNumItems = 1174180
+    baseName = "steam"
     urlBase = "https://store.steampowered.com/app/"
     itemDataFilePattern = "steampowered_{}.html"
     destFilePath = "steampowered"
-
     mongoClient = MongoClient(host="localhost", port=27017)
     mongoDb = mongoClient.steamstore
     mongoCol = mongoDb.items
 
     def config(self):
-        return self.totalNumItems, self.urlBase, self.itemDataFilePattern, self.destFilePath, self.mongoCol
+        return self.totalNumItems, self.baseName, self.urlBase, self.itemDataFilePattern, self.destFilePath, self.mongoCol
 
 class SteamStoreItem:
+
+    # Item data
     id = 0
     title = ""
     description = ""
@@ -29,7 +32,14 @@ class SteamStoreItem:
     purchase_type_steam = 0
     purchase_type_non_steam = 0
 
+    # Item control information
+    date_added = ""
+    date_updated = ""
 
+    # Extra program flow data
+    exists_in_database = False
+
+    # Information fields to database columns translation
     reviews_dict = {
         "review_type_all": "review_type_all",
         "review_type_positive": "review_type_positive",

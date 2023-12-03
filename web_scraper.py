@@ -7,11 +7,20 @@ import time
 import urllib3
 import re
 import json
-#from itemTheGamesDB import TheGamesDBConfig as siteCfg, TheGamesDBItem as siteItem, TheGamesDBMethods as siteMethods, TheGamesDBMongo as siteDB
+import os
 from itemSteamStore import SteamStoreConfig as siteCfg, SteamStoreItem as siteItem, SteamStoreMethods as siteMethods, SteamStoreMongo as siteDB
 from bs4 import BeautifulSoup
 
+# Debug flag to disable adding data to database
+flagAddToDatabase = True
+# If the item index exists in database do not download
+notDownloadIfExists = True
+# If the item index exists do not add it to database
+notAddIfExists = True
+
+
 class RequestFiles:
+
     headers = {
         'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.81 Safari/537.36'}
     procesedItemsFile = "procesedItems.txt"
@@ -19,6 +28,16 @@ class RequestFiles:
     items = []
     procesedItems = []
     notProcessedItems = []
+
+    # Site parameters
+    totalNumItems = 0
+    baseName = ""
+    urlBase = ""
+    itemDataFilePattern = ""
+    destFilePath = ""
+    mongoClient = ""
+    mongoDb = ""
+    mongoCol = ""
 
     ########################## D O W N L O A D    I T E M S    S E C T I O N
 
@@ -55,8 +74,8 @@ class RequestFiles:
         self.items.insert(item.id, item)
         self.write_response_to_file(response, itemNumber)
 
-    def downloadItems(self, item, downloadfrom):
-        totalItems = list(range(downloadfrom, self.totalNumItems + 1))
+    def downloadItems(self, item, downloadfrom, downloadto):
+        totalItems = list(range(downloadfrom, downloadto + 1))
         self.procesedItems = self.read_items_processed()
         self.notProcessedItems = list(set(totalItems) - set(self.procesedItems))
 
@@ -82,23 +101,25 @@ class RequestFiles:
         return siteMethods.parseHtml(index, soup)
 
 
-def init_logger():
+def init_logger(baseName):
     with open('config.yml', 'r') as f:
         config = yaml.safe_load(f.read())
+        file_name, extension = os.path.splitext(config['handlers']['file']['filename'])
+        config['handlers']['file']['filename']=f"{file_name}_{baseName}{extension}"
         logging.config.dictConfig(config)
     return logging.getLogger()  # "web_scraper")
 
 
-def downloadItems(downloadfrom):
+def init_config():
     requestFiles = RequestFiles()
-    requestFiles.totalNumItems, requestFiles.urlBase, requestFiles.itemDataFilePattern, requestFiles.destFilePath, requestFiles.mongoCol = siteCfg().config()
-    requestFiles.downloadItems(siteItem(),downloadfrom)
+    (requestFiles.totalNumItems, requestFiles.baseName, requestFiles.urlBase,
+     requestFiles.itemDataFilePattern, requestFiles.destFilePath, requestFiles.mongoCol) = siteCfg().config()
     return requestFiles
 
 
-def parseItemFilesAndAddToDabase(requestFiles, parseFrom):
+def parseItemFilesAndAddToDabase(requestFiles, parseFrom, parseTo):
     fails = []
-    for itemIndex in range(parseFrom, requestFiles.totalNumItems + 1):
+    for itemIndex in range(parseFrom, parseTo + 1):
         try:
             item = requestFiles.parseHtml(itemIndex)
             requestFiles.items.append(item)
@@ -118,30 +139,23 @@ def parseItemFilesAndAddToDabase(requestFiles, parseFrom):
 
     logger.warning("fails({}):{}".format(len(fails), fails))
 
+def dowloadAndParseItems(parseFrom,parseTo):
+    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+    requestFiles = init_config()
+    global logger
+    logger = init_logger(requestFiles.baseName)
 
-global logger
-flagAddToDatabase = True
-parseFrom = 1174180
-# parseFrom = 120879  #120318  #119378  #118333  #117574  #117059  #116473  #115817  #115268  #113640  #112645
-#                     #111249  #110199  #109063  #107517  #106679  #105980  #105610  #105186  #104370  #103248
+    # Dowload web data
+    requestFiles.downloadItems(siteItem(),parseFrom, parseTo)
 
-import keyboard
+    # Parse web data and add to database
+    if (parseTo-parseFrom)>=0 and flagAddToDatabase:
+        parseItemFilesAndAddToDabase(requestFiles, parseFrom, parseTo)
 
 def main():
-    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-    global logger
-    logger = init_logger()
-
-    requestFiles = downloadItems(parseFrom)
-
-    if (requestFiles.totalNumItems-(parseFrom-1))>0 and flagAddToDatabase:
-        parseItemFilesAndAddToDabase(requestFiles, parseFrom)
-
-#    items = siteDB.findTitleSimilar("Inside",10)
-#    for item in items:
-#        print(item)
-
-#    keyboard.wait()
+    # Indexes between to start and stop downloading
+    processFrom,processTo = 1174180, 1174180
+    dowloadAndParseItems(processFrom,processTo)
 
 if __name__ == "__main__":
     main()

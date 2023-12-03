@@ -12,7 +12,7 @@ handlers:
   console:
     class: logging.StreamHandler
     level: DEBUG
-    formatter: simple
+    formatter: precise
     stream: ext://sys.stdout
   file:
     class: logging.FileHandler
@@ -20,7 +20,7 @@ handlers:
     formatter: precise
     filename: web_scraping.log
     encoding: utf8
-    mode: w
+    mode: a
 
 loggers:
   web_scraper:

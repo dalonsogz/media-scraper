@@ -27,7 +27,7 @@ from bson import SON as bson
 # Genre(s): Action | Racing | Platform | Board | Family
 
 class TheGamesDBConfig:
-    totalNumItems = 120879 #2023-11-18
+    totalNumItems = 121572 #2023-12-16   120879 #2023-11-18
                         #120317 #2023-10-28    119378 #2023-09-23    118332 #2023-09-02    #117573 #2023-08-11
                         #117058 #2023-07-22    #116472 #2023-07-08    #115816 #2023-06-16    #115266 #2023-06-02
                         #114677 #2023-05-21    #113639 #2023-04-25    #112644 #2023-04-02    #111248 #2023-03-13
@@ -35,7 +35,6 @@ class TheGamesDBConfig:
                         #105979 #2022-11-04    #105609 #2022-10-22
 
     # Site parameters
-    totalNumItems = 121572
     baseName = "thegamesdb"
     urlBase = "https://thegamesdb.net/game.php?id="
     itemDataFilePattern = "thegamesdb_{}.html"

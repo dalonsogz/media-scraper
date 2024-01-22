@@ -9,7 +9,6 @@ import re
 import json
 import os
 from itemTheGamesdb import TheGamesDBConfig as siteCfg, TheGamesDBItem as siteItem, TheGamesDBMethods as siteMethods, TheGamesDBMongo as siteDB
-from bs4 import BeautifulSoup
 
 # Debug flag to disable adding data to database
 addToDatabase = True

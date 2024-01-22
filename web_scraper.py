@@ -29,7 +29,7 @@ class RequestFiles:
     notProcessedItems = []
 
     # Site parameters
-    totalNumItems = 0
+    # totalNumItems = 0
     baseName = ""
     urlBase = ""
     itemDataFilePattern = ""
@@ -113,7 +113,7 @@ def init_logger(baseName):
 
 def init_config():
     requestFiles = RequestFiles()
-    (requestFiles.totalNumItems, requestFiles.baseName, requestFiles.urlBase,
+    (requestFiles.baseName, requestFiles.urlBase,
      requestFiles.itemDataFilePattern, requestFiles.destFilePath, requestFiles.mongoCol) = siteCfg().config()
     requestFiles.processedItemsFile = requestFiles.processedItemsFile.format(requestFiles.baseName)
     return requestFiles
@@ -164,7 +164,7 @@ def dowloadAndParseItems(parseFrom, parseTo):
 
 def main():
     # Indexes between to start and stop downloading
-    processFrom,processTo = 120880, 121572
+    processFrom,processTo =121572, 122663
     dowloadAndParseItems(processFrom,processTo)
 
 if __name__ == "__main__":

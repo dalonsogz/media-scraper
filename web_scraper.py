@@ -8,6 +8,7 @@ import urllib3
 import re
 import json
 import os
+from bs4 import BeautifulSoup
 from itemTheGamesdb import TheGamesDBConfig as siteCfg, TheGamesDBItem as siteItem, TheGamesDBMethods as siteMethods, TheGamesDBMongo as siteDB
 
 # Debug flag to disable adding data to database
@@ -163,7 +164,7 @@ def dowloadAndParseItems(parseFrom, parseTo):
 
 def main():
     # Indexes between to start and stop downloading
-    processFrom,processTo =121572, 122663
+    processFrom,processTo = 123893, 124599
     dowloadAndParseItems(processFrom,processTo)
 
 if __name__ == "__main__":

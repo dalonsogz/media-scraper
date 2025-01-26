@@ -1,4 +1,4 @@
-``# media-scraper
+# media-scraper
 
 Web scrapping scripts testing capabilities with Python [BeautifulSoup](https://www.crummy.com/software/BeautifulSoup/) library.
 

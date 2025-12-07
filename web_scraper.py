@@ -164,7 +164,7 @@ def dowloadAndParseItems(parseFrom, parseTo):
 
 def main():
     # Indexes between to start and stop downloading
-    processFrom,processTo = 131066,131574
+    processFrom,processTo = 131574,134043
     dowloadAndParseItems(processFrom,processTo)
 
 if __name__ == "__main__":

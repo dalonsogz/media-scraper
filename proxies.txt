@@ -1,0 +1,9 @@
+# Go to 'https://proxyscrape.com/free-proxy-list' to update proxies list
+# (https://api.proxyscrape.com/v4/free-proxy-list/get?request=display_proxies&proxy_format=protocolipport&format=text)
+#socks4://72.206.74.126:4145
+#socks4://68.1.210.189:4145
+#socks4://72.205.0.67:4145
+#socks4://72.195.34.41:4145
+socks5://72.49.49.11:31034
+#socks4://139.59.24.173:1080
+#socks4://72.195.114.184:4145

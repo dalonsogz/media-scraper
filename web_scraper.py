@@ -10,6 +10,7 @@ import json
 import os
 from bs4 import BeautifulSoup
 from itemTheGamesdb import TheGamesDBConfig as siteCfg, TheGamesDBItem as siteItem, TheGamesDBMethods as siteMethods, TheGamesDBMongo as siteDB
+from renew_proxies import renewProxies
 
 # Debug flag to disable adding data to database
 addToDatabase = True
@@ -180,6 +181,12 @@ class RequestFiles:
         if not downloadIfExists:
             self.notProcessedItems = list(set(totalItems) - set(self.processedItems))
 
+        # Renovar proxies si la lista esta vacia
+        if len(self.proxies_list) == 0:
+            logger.info("No hay proxies activos, renovando lista de proxies...")
+            renewProxies()
+            self.load_proxies()
+
         condition = len(self.notProcessedItems) > 0
         while condition:
             itemNumber = random.choice(self.notProcessedItems)
@@ -188,7 +195,14 @@ class RequestFiles:
                 response = self.common_requests(self.urlBase, itemNumber)
             except RuntimeError as e:
                 logger.error(f"Descarga detenida: {e}")
-                raise SystemExit(1)
+                logger.info("Renovando lista de proxies...")
+                renewProxies()
+                self.load_proxies()
+                try:
+                    response = self.common_requests(self.urlBase, itemNumber)
+                except RuntimeError as e2:
+                    logger.error(f"Descarga detenida tras renovar proxies: {e2}")
+                    raise SystemExit(1)
             self.process_response(response, itemNumber, item)
             self.write_item_processed(itemNumber)
             self.notProcessedItems.remove(itemNumber)

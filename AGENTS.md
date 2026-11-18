@@ -1,7 +1,7 @@
 # AGENTS.md
 
 ## Project Overview
-Personal media scraper: downloads game data pages from TheGamesDB (https://thegamesdb.net/game.php?id=<id>),
+Personal media scraper: downloads game data pages from TheGamesDB (https://thegamesdb.net/game.php?id=),
 parses them with BeautifulSoup and stores structured items in MongoDB.
 
 ## Tech Stack
@@ -13,7 +13,7 @@ parses them with BeautifulSoup and stores structured items in MongoDB.
 - pip install -r requirements.txt
 - Start local MongoDB
 - Run: web_scraper.cmd  OR  .\venv\Scripts\python.exe web_scraper.py
-- Logs: config.yml; per-run file web_scraping_<baseName>.log (logger name: web_scraper, DEBUG)
+  - Logs: config.yml; per-run file web_scraping_.log (logger name: web_scraper, DEBUG)
 
 ## Architecture
 - web_scraper.py: main orchestration (download -> save -> mark processed -> parse -> store)

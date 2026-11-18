@@ -24,8 +24,8 @@ class RequestFiles:
     headers = {
         'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.81 Safari/537.36'}
     processedItemsFile = "processedItems_{}.txt"
-    minTimeBtwRequest = 3
-    maxTimeBtwRequest = 7
+    minTimeBtwRequest = 1
+    maxTimeBtwRequest = 3
     maxProxyFails = 2
     minValidContenSizeBytes = 3000
     items = []
@@ -49,6 +49,8 @@ class RequestFiles:
     def __init__(self):
         # Inicializa el contador de fallos por proxy
         self.proxy_fail_count = {}
+        # Sesion reutilizable (keep-alive) para reducir el overhead de handshake
+        self.session = requests.Session()
 
     ########################## D O W N L O A D    I T E M S    S E C T I O N
 
@@ -135,7 +137,7 @@ class RequestFiles:
         logger.info("Getting URL:{}".format(url))
         if not self.proxies_list:
             # Sin proxies, petición directa
-            r = requests.get(url, headers=self.headers, verify=False)
+            r = self.session.get(url, headers=self.headers, verify=False)
             return r
         # Si hay proxies, intentar con cada uno de manera aleatoria
         proxies_to_try = self.proxies_list.copy()
@@ -147,7 +149,7 @@ class RequestFiles:
                 "https": proxy
             }
             try:
-                r = requests.get(url, headers=self.headers, verify=False, proxies=proxy_dict, timeout=10)
+                r = self.session.get(url, headers=self.headers, verify=False, proxies=proxy_dict, timeout=10)
                 if len(r.content) < self.minValidContenSizeBytes:
                     logger.warning(f"Proxy {proxy} respondió con contenido demasiado pequeño ({len(r.content)} bytes), se considera fallo.")
                     raise ValueError("Contenido demasiado pequeño")

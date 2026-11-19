@@ -10,7 +10,28 @@ OOP is used as a POC (Java interfaces pattern) to achieve the decoupling between
 
 Results are stored in a mongodb database.
 
+## How it works
+
+Main script, web_scraper.py, orchestrates the full cycle for a given item range:
+
+1. **Download**: `downloadItems()` fetches the game pages from TheGamesDB through `common_requests()` (direct connection or proxies), saves the raw HTML per item and marks it as processed in `processedItems_thegamesdb.txt`.
+2. **Parse**: `parseHtml()` parses the saved HTML with BeautifulSoup and builds the structured item.
+3. **Store**: `parseItemFilesAndAddToDabase()` stores the parsed item in MongoDB, only inserting it when the `id` is not already present (controlled by the `addIfExists` flag).
+
+Main flags in `web_scraper.py`: `addToDatabase`, `downloadIfExists`, `addIfExists`, `maxConcurrentRequests`, `minTimeBtwRequest`, `maxTimeBtwRequest`, `maxProxyFails`, `minValidContenSizeBytes`.
+
+## Proxy renewal
+
+`renew_proxies.py` implements the hybrid proxy renewal workflow used by `web_scraper.py`:
+
+- **Proactive**: if the proxy list is empty at startup, it renews it.
+- **Reactive**: if all proxies fail during a download, it renews, reloads and retries once; if it fails again, the scraper exits.
+
+Renewal gathers proxies from multiple sources (FreeProxyList, clarketm, monosans), merges them with the existing ones and health checks all candidates (concurrent requests to https://thegamesdb.net/, 10 workers, 5s timeout). Only healthy proxies are written to `proxies.txt`.
+
 ## DELETE DUPLICATED ITEMS
+
+> **Historical**: this manual procedure is superseded by [`remove_duplicates.py`](remove_duplicates.py), which automates the same steps. It is kept in this document for reference only.
 
 Delete (one) duplicated records searching by a field.
 - launch the query to find duplicates by the field 'id':
@@ -52,6 +73,20 @@ db.getCollection('items').remove({
 - launch the query with mongo shell:
 ~~~
 mongo thegamesdb duplicated_ids.txt
+~~~
+
+## Remove duplicated items
+
+`remove_duplicates.py` implements the automated version of the historical procedure above:
+
+- Runs the MongoDB aggregation to find duplicated items by `id`.
+- Writes the raw results to `duplicated.txt`.
+- Extracts the duplicated `ObjectId`s and writes them to `duplicated_ids.txt`.
+- Deletes the documents by `_id` using `$in`.
+
+Run it with:
+~~~
+python remove_duplicates.py
 ~~~
 
 ## Get sorted/limited lists in mongoDB:

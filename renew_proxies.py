@@ -2,12 +2,16 @@ import logging
 import os
 
 import requests
+from concurrent.futures import ThreadPoolExecutor
 
 PROXIES_FILE = "proxies.txt"
 DEFAULT_SOURCES = [
-    "https://proxylist.tonysss.io/api/p?protocol=http",
-    "https://raw.githubusercontent.com/clarketm/proxy-list/main/proxy-list-raw.txt",
+    "https://raw.githubusercontent.com/clarketm/proxy-list/master/proxy-list-raw.txt",
+    "https://raw.githubusercontent.com/monosans/proxy-list/main/proxies/http.txt",
 ]
+HEALTHCHECK_URL = "https://thegamesdb.net/"
+HEALTHCHECK_TIMEOUT = 5
+HEALTHCHECK_WORKERS = 10
 
 
 def normalizeProxy(proxy):
@@ -65,23 +69,38 @@ def fetchProxiesFromSource(url, timeout=15):
     return proxies
 
 
+def checkProxyHealth(proxy, url=HEALTHCHECK_URL, timeout=HEALTHCHECK_TIMEOUT):
+    proxy_dict = {
+        "http": proxy,
+        "https": proxy
+    }
+    try:
+        r = requests.get(url, proxies=proxy_dict, timeout=timeout, verify=False)
+        return r.status_code == 200
+    except Exception:
+        return False
+
+
 def renewProxies(filename=PROXIES_FILE, sources=DEFAULT_SOURCES):
     existingProxies = loadProxies(filename)
     newProxies = []
     for url in sources:
         try:
             fetchedProxies = fetchProxiesFromSource(url)
-            if fetchedProxies:
-                newProxies = fetchedProxies
-                break
+            newProxies.extend([p for p in fetchedProxies if p not in newProxies])
         except Exception as e:
             logging.error("Proxy renewal source failed {}: {}".format(url, e))
     mergedProxies = existingProxies + [p for p in newProxies if p not in existingProxies]
+    # Health check concurrente de todos los candidatos (existentes + nuevos);
+    # solo se conservan los proxies que responden correctamente
+    with ThreadPoolExecutor(max_workers=HEALTHCHECK_WORKERS) as executor:
+        health_checks = list(executor.map(lambda p: (p, checkProxyHealth(p)), mergedProxies))
+    healthyProxies = [p for p, ok in health_checks if ok]
     with open(filename, 'w', encoding='utf8') as f:
-        for proxy in mergedProxies:
+        for proxy in healthyProxies:
             f.write("{}\n".format(proxy))
-    logging.info("Proxy renewal finished. Total proxies: {}".format(len(mergedProxies)))
-    return mergedProxies
+    logging.info("Proxy renewal finished. Total proxies: {} (healthy: {}).".format(len(healthyProxies), len(healthyProxies)))
+    return healthyProxies
 
 
 def main():

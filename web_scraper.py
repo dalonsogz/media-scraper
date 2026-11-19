@@ -8,6 +8,8 @@ import urllib3
 import re
 import json
 import os
+import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from bs4 import BeautifulSoup
 from itemTheGamesdb import TheGamesDBConfig as siteCfg, TheGamesDBItem as siteItem, TheGamesDBMethods as siteMethods, TheGamesDBMongo as siteDB
 from renew_proxies import renewProxies
@@ -18,6 +20,8 @@ addToDatabase = True
 downloadIfExists = False
 # If the item index exists do not add it to database
 addIfExists = False
+# Maximo numero de requests concurrentes
+maxConcurrentRequests = 2
 
 
 class RequestFiles:
@@ -49,8 +53,17 @@ class RequestFiles:
     def __init__(self):
         # Inicializa el contador de fallos por proxy
         self.proxy_fail_count = {}
-        # Sesion reutilizable (keep-alive) para reducir el overhead de handshake
-        self.session = requests.Session()
+        # Sesion reutilizable por hilo (keep-alive) para reducir el overhead de handshake
+        self._local = threading.local()
+        # Lock para sincronizar la marcado de proxies fallidos
+        self.proxy_lock = threading.Lock()
+
+    def get_session(self):
+        session = getattr(self._local, "session", None)
+        if session is None:
+            session = requests.Session()
+            self._local.session = session
+        return session
 
     ########################## D O W N L O A D    I T E M S    S E C T I O N
 
@@ -137,7 +150,7 @@ class RequestFiles:
         logger.info("Getting URL:{}".format(url))
         if not self.proxies_list:
             # Sin proxies, petición directa
-            r = self.session.get(url, headers=self.headers, verify=False)
+            r = self.get_session().get(url, headers=self.headers, verify=False)
             return r
         # Si hay proxies, intentar con cada uno de manera aleatoria
         proxies_to_try = self.proxies_list.copy()
@@ -149,7 +162,12 @@ class RequestFiles:
                 "https": proxy
             }
             try:
-                r = self.session.get(url, headers=self.headers, verify=False, proxies=proxy_dict, timeout=10)
+                r = self.get_session().get(url, headers=self.headers, verify=False, proxies=proxy_dict, timeout=10)
+                if r.status_code in (429, 503):
+                    # Rate limit o servicio no disponible: no marcar el proxy como fallido,
+                    # se reintenta con el siguiente en la lista
+                    last_exception = requests.HTTPError(f"Proxy {proxy} respondió con status {r.status_code}")
+                    continue
                 if len(r.content) < self.minValidContenSizeBytes:
                     logger.warning(f"Proxy {proxy} respondió con contenido demasiado pequeño ({len(r.content)} bytes), se considera fallo.")
                     raise ValueError("Contenido demasiado pequeño")
@@ -162,7 +180,9 @@ class RequestFiles:
                     logger.warning(f"Proxy {proxy} superó el límite de fallos y será deshabilitado para esta ejecución y futuras.")
                     if proxy in self.proxies_list:
                         self.proxies_list.remove(proxy)
-                    self.mark_failed_proxies()
+                    # Lock para escritura thread-safe del archivo de proxies
+                    with self.proxy_lock:
+                        self.mark_failed_proxies()
                 last_exception = e
         logger.error("Todos los proxies fallaron para la URL {}".format(url))
         raise RuntimeError("Todos los proxies fallaron")
@@ -175,6 +195,24 @@ class RequestFiles:
     def process_response(self, response, itemNumber, item):
         self.items.insert(item.id, item)
         self.write_response_to_file(response, itemNumber)
+
+    def _downloadItem(self, itemNumber, item):
+        logger.info("Item {}".format(str(itemNumber)))
+        try:
+            response = self.common_requests(self.urlBase, itemNumber)
+        except RuntimeError as e:
+            logger.error(f"Descarga detenida: {e}")
+            logger.info("Renovando lista de proxies...")
+            renewProxies()
+            self.load_proxies()
+            try:
+                response = self.common_requests(self.urlBase, itemNumber)
+            except RuntimeError as e2:
+                logger.error(f"Descarga detenida tras renovar proxies: {e2}")
+                raise SystemExit(1)
+        self.process_response(response, itemNumber, item)
+        self.write_item_processed(itemNumber)
+        time.sleep(random.randint(self.minTimeBtwRequest, self.maxTimeBtwRequest))
 
     def downloadItems(self, item, downloadfrom, downloadto):
         totalItems = list(range(downloadfrom, downloadto + 1))
@@ -189,27 +227,14 @@ class RequestFiles:
             renewProxies()
             self.load_proxies()
 
-        condition = len(self.notProcessedItems) > 0
-        while condition:
-            itemNumber = random.choice(self.notProcessedItems)
-            logger.info("Item {}".format(str(itemNumber)))
-            try:
-                response = self.common_requests(self.urlBase, itemNumber)
-            except RuntimeError as e:
-                logger.error(f"Descarga detenida: {e}")
-                logger.info("Renovando lista de proxies...")
-                renewProxies()
-                self.load_proxies()
-                try:
-                    response = self.common_requests(self.urlBase, itemNumber)
-                except RuntimeError as e2:
-                    logger.error(f"Descarga detenida tras renovar proxies: {e2}")
-                    raise SystemExit(1)
-            self.process_response(response, itemNumber, item)
-            self.write_item_processed(itemNumber)
-            self.notProcessedItems.remove(itemNumber)
-            time.sleep(random.randint(self.minTimeBtwRequest, self.maxTimeBtwRequest))
-            condition = len(self.notProcessedItems) > 0
+        with ThreadPoolExecutor(max_workers=maxConcurrentRequests) as executor:
+            futures = []
+            while len(self.notProcessedItems) > 0:
+                itemNumber = random.choice(self.notProcessedItems)
+                self.notProcessedItems.remove(itemNumber)
+                futures.append(executor.submit(self._downloadItem, itemNumber, item))
+            for future in as_completed(futures):
+                future.result()
 
     ########################## P A R S E    I T E M S    S E C T I O N
 
@@ -286,7 +311,7 @@ def dowloadAndParseItems(parseFrom, parseTo):
 
 def main():
     # Indexes between to start and stop downloading
-    processFrom,processTo = 135684,144609
+    processFrom,processTo = 135684,144787
     dowloadAndParseItems(processFrom,processTo)
 
 if __name__ == "__main__":
